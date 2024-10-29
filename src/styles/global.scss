@@ -1,0 +1,27 @@
+@use '@/styles/config/normalize';
+
+.radix-themes {
+  --cursor-button: pointer;
+  --cursor-checkbox: pointer;
+  --cursor-disabled: default;
+  --cursor-link: pointer;
+  --cursor-menu-item: pointer;
+  --cursor-radio: pointer;
+  --cursor-slider-thumb: grab;
+  --cursor-slider-thumb-active: grabbing;
+  --cursor-switch: pointer;
+}
+
+.layout-main {
+  padding: calc(3rem + var(--space-4)) var(--space-4) var(--space-4);
+  flex-grow: 1;
+  // margin-left: -15.5rem;
+  margin: 0 auto;
+
+  display: flex;
+  max-width: 100%;
+  justify-content: center;
+
+  height: 100vh;
+  height: 100dvh;
+}
