@@ -14,21 +14,15 @@ export default function JsonLde() {
   const [value, setValue] = useState(`
     {
       "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [{
-        "@type": "Question",
-        "name": "How to find an apprenticeship?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "<p>We provide an official service to search through available apprenticeships. To get started, create an account here, specify the desired region, and your preferences. You will be able to search through all officially registered open apprenticeships.</p>"
-        }
-      }, {
-        "@type": "Question",
-        "name": "Whom to contact?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "You can contact the apprenticeship office through our official phone hotline above, or with the web-form below. We generally respond to written requests within 7-10 days."
-        }
+      "@type": "NewsArticle",
+      "author": [{
+          "@type": "Person",
+          "name": "Jane Doe",
+          "url": "https://example.com/profile/janedoe123"
+        },{
+          "@type": "Person",
+          "name": "John Doe",
+          "url": "https://example.com/profile/johndoe123"
       }]
     }
     `);
@@ -73,7 +67,7 @@ export default function JsonLde() {
         >
           <CodeBlock
             value={value}
-            style={{ height: 'calc(100vh - 23.5rem)' }}
+            style={{ height: 'calc(100vh - 23.5rem)', overflow: 'auto' }}
             placeholder="Paste your JSON-LD data..."
             hasError={error.hasError}
             errors={error.hasError ? [error.message] : []}

@@ -19,7 +19,6 @@ function CodeBlock({
   errors = [],
   ...args
 }: ICodeBlockProps) {
-  console.log('render');
   return (
     <div className={style.codeblock}>
       <CodeEditor
