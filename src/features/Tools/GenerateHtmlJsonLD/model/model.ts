@@ -60,8 +60,26 @@ class HTMLJsonLDGenerator {
     .map(([key, value]) => this.createStructureByKey(key, value));
   }
 
-  protected generateHTMLFromJson(value) {
-    
+  protected generateHTMLFromJson(value, parent) {
+    const element = document.createElement(value.tag)
+
+    if (value?.text) {
+      element.textContent = value.text;
+    }
+  
+    Object.entries(value.attributes).forEach(([attributeKey, attributeValue]) => {
+      element.setAttribute(attributeKey, attributeValue);
+    })
+  
+    parent.appendChild(element);
+
+    Object.keys(value).forEach((key) => {
+      if (key === 'children' && Array.isArray(value[key])) {
+        value[key].forEach((child) => {
+          this.generateHTMLFromJson(child, element);
+        });
+      }
+    })
   }
 
   protected recursiveTraversalJson(
@@ -94,9 +112,9 @@ class HTMLJsonLDGenerator {
             ...acc.children,
             {
               key,
-              attributes: { itemscope: true },
+              attributes: { itemscope: true, itemprop: key },
               tag: 'div',
-              children: this.recursiveTraversalJson(item, level),
+              children: [this.recursiveTraversalJson(item, level)],
             }
           ];
         });
@@ -108,13 +126,16 @@ class HTMLJsonLDGenerator {
             {
               key,
               tag: 'div',
-              children: this.recursiveTraversalJson(value, level),
+              children: [this.recursiveTraversalJson(value, level)],
             }
           ]
         }
-      } else if (typeof jsonValue === 'object') {
-        acc = { ...acc, children: this.formatObjectJsonLdHtml(jsonValue) }
+      } 
+      else if (typeof jsonValue === 'object' && typeof value !== 'object') {
+        acc = this.formatObjectJsonLdHtml(jsonValue)
       }
+
+      console.log(jsonValue, value)
 
       return acc;
     }, { children: [], attributes: {}, tag: 'div' });
@@ -123,7 +144,12 @@ class HTMLJsonLDGenerator {
   public formatFromJsonToString(jsonValue: string): string {
     const json = JSON.parse(jsonValue ?? '');
 
-    const result = this.recursiveTraversalJson(json, 0);
+    const jsonHTMLresult = this.recursiveTraversalJson(json, 0);
+    console.log(jsonHTMLresult)
+
+    const parent = document.createElement('div');
+
+    // this.generateHTMLFromJson(jsonHTMLresult, parent);
     return '';
   }
 }
