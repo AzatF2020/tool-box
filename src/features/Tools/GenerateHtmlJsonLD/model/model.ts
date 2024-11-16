@@ -1,7 +1,20 @@
-class HTMLJsonLDGenerator {
+interface IHTMLJsonLDGenerator {
+  formatFromJsonToString: (jsonValue: string) => string;
+  recursiveTraversalJson: (jsonValue: any, depth: number) => any;
+  generateHTMLFromJson: (jsonValue: any) => string;
+  increaseDepth: (value: number) => number;
+}
+
+class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
   public jsonLdKeysMap: { [keyof: string]: string };
 
+  public keysExclude: { [keyof: string]: boolean };
+
+  private parser: InstanceType<typeof DOMParser> = new DOMParser();
+
   constructor() {
+    this.parser = new DOMParser();
+
     this.jsonLdKeysMap = {
       name: 'name',
       text: 'text',
@@ -10,6 +23,14 @@ class HTMLJsonLDGenerator {
       dateModified: 'dateModified',
       datePublished: 'datePublished',
       headline: 'headline',
+      image: 'image',
+    };
+
+    this.keysExclude = {
+      '@context': true,
+      '@type': true,
+      '@id': true,
+      '@graph': true,
     };
   }
 
@@ -19,137 +40,189 @@ class HTMLJsonLDGenerator {
         return {
           tag: 'h1',
           text: value,
-        }
+        };
       case this.jsonLdKeysMap.name:
         return {
           tag: 'span',
           text: value,
           attributes: { itemprop: key },
-        }
+        };
+      case this.jsonLdKeysMap.text:
+        return {
+          tag: 'p',
+          text: this.parser.parseFromString(value, 'text/html').body
+            .textContent,
+          attributes: { itemprop: key },
+        };
       case this.jsonLdKeysMap.url:
         return {
           tag: 'a',
           text: value,
           attributes: { href: value },
-        }
+        };
       case this.jsonLdKeysMap.dateModified:
         return {
           tag: 'time',
           text: value,
           attributes: { itemprop: key, datetime: value },
-        }  
+        };
       case this.jsonLdKeysMap.datePublished:
         return {
           tag: 'time',
           text: value,
           attributes: { itemprop: key, datetime: value },
-        }  
-      default: 
+        };
+      case this.jsonLdKeysMap.image:
+        return {
+          tag: 'img',
+          text: value,
+          attributes: { itemprop: key, src: value, alt: 'image' },
+        };
+      default:
         return {
           tag: 'span',
           text: value,
-        }  
+          attributes: { itemprop: key },
+        };
     }
   }
 
-  protected formatObjectJsonLdHtml(jsonValue: any) {
-    return Object.entries(jsonValue)
-    .filter(([key, _]) => {
-      return key in this.jsonLdKeysMap;
-    })
-    .map(([key, value]) => this.createStructureByKey(key, value));
-  }
+  protected generateHTMLFromJson(value) {
+    const CONTAINER = document.createElement('div');
 
-  protected generateHTMLFromJson(value, parent) {
-    const element = document.createElement(value.tag)
+    const generate = (jsonValue, parentElement: HTMLElement): void => {
+      const element = document.createElement(jsonValue?.tag);
 
-    if (value?.text) {
-      element.textContent = value.text;
-    }
-  
-    Object.entries(value.attributes).forEach(([attributeKey, attributeValue]) => {
-      element.setAttribute(attributeKey, attributeValue);
-    })
-  
-    parent.appendChild(element);
-
-    Object.keys(value).forEach((key) => {
-      if (key === 'children' && Array.isArray(value[key])) {
-        value[key].forEach((child) => {
-          this.generateHTMLFromJson(child, element);
-        });
+      if (jsonValue?.text) {
+        element.textContent = jsonValue.text;
       }
-    })
+
+      if (jsonValue?.attributes) {
+        Object.entries(jsonValue?.attributes).forEach(
+          ([attributeKey, attributeValue]) => {
+            element.setAttribute(attributeKey, attributeValue);
+          },
+        );
+      }
+
+      parentElement.appendChild(element);
+
+      Object.keys(jsonValue).forEach((key) => {
+        if (key === 'children' && Array.isArray(jsonValue[key])) {
+          jsonValue[key].forEach((child) => {
+            generate(child, element);
+          });
+        }
+      });
+    };
+
+    generate(value, CONTAINER);
+
+    const result = this.parser.parseFromString(CONTAINER.innerHTML, 'text/html')
+      .body.children[0];
+
+    CONTAINER.remove();
+
+    return result;
+  }
+
+  public increaseDepth(value: number): number {
+    return value + 1;
   }
 
   protected recursiveTraversalJson(
     jsonValue: any,
-    level = 0,
+    depth = 0,
+    options: { [keyof: string]: any } = {},
   ) {
-    level += 1
-    
-    return Object.entries(jsonValue).reduce((acc: any, [key, value]) => {
-      acc = { children: [], attributes: {}, tag: 'div', ...acc };
+    const DEPTH_INCREMENT = this.increaseDepth(depth);
 
-      if (level === 1) {
-        acc = {
-          ...acc,
-          tag: 'div',
-          attributes: { class: 'container', itemscope: true },
-        };
-      }
-
-      if (!Array.isArray(value) && typeof value !== 'object' && level === 1) {
-        acc.children = [
-          ...acc.children,
-          this.createStructureByKey(key, value)
-        ]
-      }
+    return Object.entries(jsonValue).reduce(
+      (acc, [key, value]) => {
+        //  Инициализация контейнера
+        if (DEPTH_INCREMENT === 1) {
+          acc = {
+            children: [...acc.children],
+            tag: 'div',
+            key: 'container',
+            attributes: {
+              class: 'container',
+              itemscope: '',
+              itemtype: `${options.context}/${options.generalType}`,
+            },
+          };
+        }
 
         if (Array.isArray(value)) {
-        value.forEach((item: any) => {
+          acc.children = [
+            ...acc.children,
+            ...value.map((item) => ({
+              tag: 'div',
+              attributes: {
+                itemprop: key,
+                itemscope: '',
+                ...(item['@type'] && {
+                  itemtype: `${options.context}/${item['@type']}`,
+                }),
+              },
+              children: this.recursiveTraversalJson(
+                item,
+                DEPTH_INCREMENT,
+                options,
+              ).children,
+            })),
+          ];
+        }
+
+        // Если элемент value - объект в структуре jsonValue
+        if (typeof value === 'object' && !Array.isArray(value)) {
           acc.children = [
             ...acc.children,
             {
-              key,
-              attributes: { itemscope: true, itemprop: key },
+              attributes: {
+                itemprop: key,
+                itemscope: '',
+                ...(value['@type'] && {
+                  itemtype: `${options.context}/${value['@type']}`,
+                }),
+              },
               tag: 'div',
-              children: [this.recursiveTraversalJson(item, level)],
-            }
+              children: this.recursiveTraversalJson(
+                value,
+                DEPTH_INCREMENT,
+                options,
+              ).children,
+            },
           ];
-        });
-      } else if (typeof value === 'object') {
-        acc = {
-          ...acc,
-          children: [
-            ...acc.children,
-            {
-              key,
-              tag: 'div',
-              children: [this.recursiveTraversalJson(value, level)],
-            }
-          ]
         }
-      } 
-      else if (typeof jsonValue === 'object' && typeof value !== 'object') {
-        acc = this.formatObjectJsonLdHtml(jsonValue)
-      }
 
-      console.log(jsonValue, value)
+        // Если элемент value - строка в структуре jsonValue
+        if (
+          ['string', 'number'].includes(typeof value) &&
+          !(key in this.keysExclude)
+        ) {
+          acc.children = [
+            ...acc.children,
+            this.createStructureByKey(key, value),
+          ];
+        }
 
-      return acc;
-    }, { children: [], attributes: {}, tag: 'div' });
+        return acc;
+      },
+      { children: [] },
+    );
   }
 
   public formatFromJsonToString(jsonValue: string): string {
     const json = JSON.parse(jsonValue ?? '');
 
-    const jsonHTMLresult = this.recursiveTraversalJson(json, 0);
-    console.log(jsonHTMLresult)
-
-    const parent = document.createElement('div');
-
-    // this.generateHTMLFromJson(jsonHTMLresult, parent);
+    const JSON_HTML_RESULT = this.recursiveTraversalJson(json, 0, {
+      context: json['@context'],
+      generalType: json['@type'],
+    });
+    console.log(JSON_HTML_RESULT);
+    const result = this.generateHTMLFromJson(JSON_HTML_RESULT);
+    console.log(result);
     return '';
   }
 }
