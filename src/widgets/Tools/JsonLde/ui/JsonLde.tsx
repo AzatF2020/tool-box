@@ -11,7 +11,7 @@ import { IVerifyJson } from '@/features/Tools/VerifyJson/model/model';
 import { GenerateHtmlJsonLD } from '@/features/Tools/GenerateHtmlJsonLD';
 
 export default function JsonLde() {
-  const [value, setValue] = useState(`
+  const [jsonValue, setJsonValue] = useState(`
    {
       "@context": "https://schema.org",
       "@type": "FAQPage",
@@ -32,14 +32,15 @@ export default function JsonLde() {
       }]
     }
     `);
+  const [htmlValue, setHtmlValue] = useState('');
   const [tab, setTab] = useState<(typeof jsonTabs)[0]>(jsonTabs[0]);
   const [error, setError] = useState<IVerifyJson>({} as IVerifyJson);
 
   useEffect(() => {
-    if (value.length) return;
+    if (jsonValue.length) return;
 
     setError({} as IVerifyJson);
-  }, [value]);
+  }, [jsonValue]);
 
   return (
     <ToolLayout
@@ -63,29 +64,23 @@ export default function JsonLde() {
       (Hypertext Markup Language) format. This tool allows users to transform structured data into a human-readable format, making it easier to visualize 
       and understand the data. Simply paste your JSON-LD data into the input field, and the tool will automatically convert it into HTML format."
     >
-      <Flex gap="3" align="start" width="100%">
-        <Flex
-          gap="5"
-          direction="column"
-          width="50%"
-          align="start"
-          justify="start"
-        >
+      <Flex gap="3" align="center" width="100%">
+        <Flex gap="5" direction="column" width="50%" justify="start">
           <CodeBlock
-            value={value}
+            value={jsonValue}
             style={{ height: 'calc(100vh - 23.5rem)', overflow: 'auto' }}
             placeholder="Paste your JSON-LD data..."
             hasError={error.hasError}
             errors={error.hasError ? [error.message] : []}
             onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-              setValue(event.currentTarget.value)
+              setJsonValue(event.currentTarget.value)
             }
           />
           <Flex gap="2" align="center">
             <BeatifyJson
               spaces={tab}
-              value={value}
-              setValue={setValue}
+              value={jsonValue}
+              setValue={setJsonValue}
               getStatus={setError}
             />
 
@@ -107,7 +102,31 @@ export default function JsonLde() {
             </Select.Root>
           </Flex>
         </Flex>
-        <GenerateHtmlJsonLD value={value} />
+
+        <GenerateHtmlJsonLD value={jsonValue} getValue={setHtmlValue} />
+
+        <Flex gap="5" direction="column" width="50%" justify="start">
+          <CodeBlock
+            lang="html"
+            language="html"
+            value={htmlValue}
+            style={{ height: 'calc(100vh - 23.5rem)', overflow: 'auto' }}
+            placeholder="Paste your JSON-LD data..."
+            hasError={error.hasError}
+            errors={error.hasError ? [error.message] : []}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+              setHtmlValue(event.currentTarget.value)
+            }
+          />
+          <Flex gap="2" align="center">
+            {/* <BeatifyJson
+              spaces={tab}
+              value={value}
+              setValue={setValue}
+              getStatus={setError}
+            /> */}
+          </Flex>
+        </Flex>
       </Flex>
     </ToolLayout>
   );

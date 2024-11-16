@@ -1,3 +1,5 @@
+import formatHTML from '@/shared/lib/helpers/formatHtml';
+
 interface IHTMLJsonLDGenerator {
   formatFromJsonToString: (jsonValue: string) => string;
   recursiveTraversalJson: (jsonValue: any, depth: number) => any;
@@ -10,7 +12,7 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
 
   public keysExclude: { [keyof: string]: boolean };
 
-  private parser: InstanceType<typeof DOMParser> = new DOMParser();
+  private parser: InstanceType<typeof DOMParser>;
 
   constructor() {
     this.parser = new DOMParser();
@@ -220,10 +222,8 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
       context: json['@context'],
       generalType: json['@type'],
     });
-    console.log(JSON_HTML_RESULT);
-    const result = this.generateHTMLFromJson(JSON_HTML_RESULT);
-    console.log(result);
-    return '';
+
+    return formatHTML(this.generateHTMLFromJson(JSON_HTML_RESULT).outerHTML);
   }
 }
 
