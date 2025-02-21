@@ -1,18 +1,24 @@
+'use client';
+
 import formatHTML from '@/shared/lib/helpers/formatHtml';
 
 interface IHTMLJsonLDGenerator {
   formatFromJsonToString: (jsonValue: string) => string;
-  recursiveTraversalJson: (jsonValue: any, depth: number) => any;
-  generateHTMLFromJson: (jsonValue: any) => string;
+  recursiveTraversalJson: (
+    jsonValue: any,
+    depth: number,
+    options?: { [key: string]: any },
+  ) => any;
+  generateHTMLFromJson: (jsonValue: any) => HTMLElement;
   increaseDepth: (value: number) => number;
 }
 
 class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
-  public jsonLdKeysMap: { [keyof: string]: string };
+  public jsonLdKeysMap: { [key: string]: string };
 
-  public keysExclude: { [keyof: string]: boolean };
+  public keysExclude: { [key: string]: boolean };
 
-  private parser: InstanceType<typeof DOMParser>;
+  private parser: DOMParser;
 
   constructor() {
     this.parser = new DOMParser();
@@ -36,7 +42,10 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
     };
   }
 
-  protected createStructureByKey(key = '', value = '') {
+  protected createStructureByKey(
+    key: string = '',
+    value: string = '',
+  ): { tag: string; text?: string; attributes?: { [key: string]: string } } {
     switch (key) {
       case this.jsonLdKeysMap.headline:
         return {
@@ -52,8 +61,9 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
       case this.jsonLdKeysMap.text:
         return {
           tag: 'p',
-          text: this.parser.parseFromString(value, 'text/html').body
-            .textContent,
+          text:
+            this.parser.parseFromString(value, 'text/html').body.textContent ||
+            '',
           attributes: { itemprop: key },
         };
       case this.jsonLdKeysMap.url:
@@ -89,10 +99,10 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
     }
   }
 
-  protected generateHTMLFromJson(value) {
+  public generateHTMLFromJson(value: any): HTMLElement {
     const CONTAINER = document.createElement('div');
 
-    const generate = (jsonValue, parentElement: HTMLElement): void => {
+    const generate = (jsonValue: any, parentElement: HTMLElement): void => {
       const element = document.createElement(jsonValue?.tag);
 
       if (jsonValue?.text) {
@@ -100,9 +110,9 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
       }
 
       if (jsonValue?.attributes) {
-        Object.entries(jsonValue?.attributes).forEach(
+        Object.entries(jsonValue.attributes).forEach(
           ([attributeKey, attributeValue]) => {
-            element.setAttribute(attributeKey, attributeValue);
+            element.setAttribute(attributeKey, attributeValue as string);
           },
         );
       }
@@ -111,7 +121,7 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
 
       Object.keys(jsonValue).forEach((key) => {
         if (key === 'children' && Array.isArray(jsonValue[key])) {
-          jsonValue[key].forEach((child) => {
+          jsonValue[key].forEach((child: any) => {
             generate(child, element);
           });
         }
@@ -121,7 +131,7 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
     generate(value, CONTAINER);
 
     const result = this.parser.parseFromString(CONTAINER.innerHTML, 'text/html')
-      .body.children[0];
+      .body.children[0] as HTMLElement;
 
     CONTAINER.remove();
 
@@ -132,16 +142,29 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
     return value + 1;
   }
 
-  protected recursiveTraversalJson(
+  public recursiveTraversalJson(
     jsonValue: any,
-    depth = 0,
-    options: { [keyof: string]: any } = {},
-  ) {
+    depth: number = 0,
+    options: { [key: string]: any } = {},
+  ): {
+    children: any[];
+    tag?: string;
+    key?: string;
+    attributes?: { [key: string]: string };
+  } {
     const DEPTH_INCREMENT = this.increaseDepth(depth);
 
     return Object.entries(jsonValue).reduce(
-      (acc, [key, value]) => {
-        //  Инициализация контейнера
+      (
+        acc: {
+          children: any[];
+          tag?: string;
+          key?: string;
+          attributes?: { [key: string]: string };
+        },
+        [key, value],
+      ) => {
+        // Инициализация контейнера
         if (DEPTH_INCREMENT === 1) {
           acc = {
             children: [...acc.children],
@@ -178,14 +201,15 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
 
         // Если элемент value - объект в структуре jsonValue
         if (typeof value === 'object' && !Array.isArray(value)) {
+          const typedValue = value as { '@type': string };
           acc.children = [
             ...acc.children,
             {
               attributes: {
                 itemprop: key,
                 itemscope: '',
-                ...(value['@type'] && {
-                  itemtype: `${options.context}/${value['@type']}`,
+                ...(typedValue['@type'] && {
+                  itemtype: `${options.context}/${typedValue['@type']}`,
                 }),
               },
               tag: 'div',
@@ -198,14 +222,14 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
           ];
         }
 
-        // Если элемент value - строка в структуре jsonValue
+        // Если элемент value - строка/число в структуре jsonValue
         if (
           ['string', 'number'].includes(typeof value) &&
           !(key in this.keysExclude)
         ) {
           acc.children = [
             ...acc.children,
-            this.createStructureByKey(key, value),
+            this.createStructureByKey(key, value!.toString()),
           ];
         }
 
@@ -216,7 +240,7 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
   }
 
   public formatFromJsonToString(jsonValue: string): string {
-    const json = JSON.parse(jsonValue ?? '');
+    const json = JSON.parse(jsonValue ?? '{}');
 
     const JSON_HTML_RESULT = this.recursiveTraversalJson(json, 0, {
       context: json['@context'],
@@ -227,4 +251,4 @@ class HTMLJsonLDGenerator implements IHTMLJsonLDGenerator {
   }
 }
 
-export default new HTMLJsonLDGenerator();
+export default HTMLJsonLDGenerator;

@@ -1,4 +1,7 @@
 {
+  "globals": {
+    "NodeJS": true
+  },
   "env": {
     "browser": true,
     "es2022": true,
@@ -20,6 +23,11 @@
   ],
   "plugins": ["prettier"],
   "rules": {
+    "react/jsx-no-useless-fragment": "off",
+    "no-unused-vars": "off",
+    "no-useless-escape": "off",
+    "no-param-reassign": "off",
+    "@typescript-eslint/no-explicit-any": "off",
     "import/no-extraneous-dependencies": "off",
     "react/style-prop-object": "off",
     "import/extensions": "off",
@@ -27,6 +35,7 @@
     "react/react-in-jsx-scope": "off",
     "react/jsx-props-no-spreading": "off",
     "react/forbid-prop-types": "off",
+    "class-methods-use-this": "off",
     "react/jsx-filename-extension": [
       2,
       { "extensions": [".js", ".jsx", ".ts", ".tsx"] }

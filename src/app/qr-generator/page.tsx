@@ -1,3 +1,3 @@
 export default function page() {
-  return <div>Qr generator</div>;
+  return <div>In development...</div>;
 }

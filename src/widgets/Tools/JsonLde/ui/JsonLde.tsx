@@ -64,7 +64,7 @@ export default function JsonLde() {
       (Hypertext Markup Language) format. This tool allows users to transform structured data into a human-readable format, making it easier to visualize 
       and understand the data. Simply paste your JSON-LD data into the input field, and the tool will automatically convert it into HTML format."
     >
-      <Flex gap="3" align="center" width="100%">
+      <Flex gap="3" align="start" width="100%">
         <Flex gap="5" direction="column" width="50%" justify="start">
           <CodeBlock
             value={jsonValue}
@@ -92,9 +92,9 @@ export default function JsonLde() {
               <Select.Content>
                 <Select.Group>
                   <Select.Label>Tabs count:</Select.Label>
-                  {jsonTabs.map((tab) => (
-                    <Select.Item key={tab} value={tab.toString()}>
-                      {tab}
+                  {jsonTabs.map((item) => (
+                    <Select.Item key={item} value={item.toString()}>
+                      {item}
                     </Select.Item>
                   ))}
                 </Select.Group>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { IconButton } from '@radix-ui/themes';
 import { DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import HTMLJsonLDGenerator from '@/features/Tools/GenerateHtmlJsonLD/model/model';
@@ -13,13 +14,23 @@ export default function GenerateHtmlJsonLD({
   value,
   getValue,
 }: IGenerateHtmlJsonLDProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
-    <IconButton
-      onClick={() =>
-        getValue(HTMLJsonLDGenerator.formatFromJsonToString(value))
-      }
-    >
-      <DoubleArrowRightIcon />
-    </IconButton>
+    <>
+      {mounted && (
+        <IconButton
+          onClick={() =>
+            getValue!(new HTMLJsonLDGenerator().formatFromJsonToString(value))
+          }
+        >
+          <DoubleArrowRightIcon />
+        </IconButton>
+      )}
+    </>
   );
 }

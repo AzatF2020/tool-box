@@ -1,4 +1,4 @@
-import { Grid, Text, Strong } from '@radix-ui/themes';
+import { Grid, Text } from '@radix-ui/themes';
 import { ArchiveIcon } from '@radix-ui/react-icons';
 import style from './style.module.scss';
 

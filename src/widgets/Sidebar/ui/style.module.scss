@@ -10,6 +10,7 @@
   flex-shrink: 0;
   border-right: 0.0325rem solid var(--gray-6);
   background-color: var(--color-background);
+  z-index: 1;
 
   &__link {
     display: block;

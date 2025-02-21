@@ -9,8 +9,8 @@ export default function ErrorsComponent({ errors }: IErrorsComponentProps) {
     <>
       {errors.length > 0 && (
         <Flex direction="column" align="start" gap="1" justify="start">
-          {errors.map((error, index) => (
-            <Text key={index} size="2" color="red">
+          {errors.map((error) => (
+            <Text key={`${error}-key`} size="2" color="red">
               {error}
             </Text>
           ))}
